@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHotel AI | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        .active-tab { background-color: #1e293b; border-left: 4px solid #3b82f6; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <div class="flex h-screen">
+        <aside class="w-64 bg-slate-900 text-white flex flex-col">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold tracking-tight text-blue-400">SmartHotel <span class="text-white">AI</span></h1>
+                <p class="text-xs text-slate-400">Panel de Gestión</p>
+            </div>
+            
+            <nav class="flex-1 mt-4">
+                <button onclick="showTab('resenas')" id="btn-resenas" class="w-full flex items-center py-3 px-6 text-slate-300 hover:bg-slate-800 transition active-tab">
+                    <i class="fas fa-star mr-3"></i> Reseñas
+                </button>
+                <button onclick="showTab('asistente')" id="btn-asistente" class="w-full flex items-center py-3 px-6 text-slate-300 hover:bg-slate-800 transition">
+                    <i class="fas fa-comment-dots mr-3"></i> Asistente de Huéspedes
+                </button>
+                <button onclick="showTab('configuracion')" id="btn-configuracion" class="w-full flex items-center py-3 px-6 text-slate-300 hover:bg-slate-800 transition">
+                    <i class="fas fa-cog mr-3"></i> Configuración
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-slate-800 text-center">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Vibe Coding Edition</div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="bg-white shadow-sm h-16 flex items-center px-8 justify-between">
+                <h2 id="tab-title" class="text-xl font-semibold text-slate-800">Gestión de Reseñas</h2>
+                <div class="flex items-center space-x-2">
+                    <span id="api-status" class="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_5px_red]"></span>
+                    <span class="text-sm text-slate-500 font-medium">Estado API</span>
+                </div>
+            </header>
+
+            <div class="p-8 overflow-y-auto">
+                
+                <section id="tab-resenas" class="tab-content active space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Pega la reseña del huésped aquí:</label>
+                        <textarea id="review-input" rows="5" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Ej: Las vistas eran increíbles pero el aire acondicionado hacía ruido..."></textarea>
+                        <button onclick="generateResponse()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all font-medium flex items-center">
+                            <i class="fas fa-magic mr-2"></i> Generar Respuesta
+                        </button>
+                    </div>
+
+                    <div id="response-container" class="hidden bg-white p-6 rounded-xl border-l-4 border-blue-500 shadow-md">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="text-blue-800 font-semibold uppercase text-xs tracking-wider">Sugerencia de la IA</h4>
+                            <button onclick="copyToClipboard()" id="copy-btn" class="text-slate-400 hover:text-blue-600 transition-colors flex items-center text-sm">
+                                <i class="fas fa-copy mr-1"></i> <span>Copiar respuesta</span>
+                            </button>
+                        </div>
+                        <p id="ai-response-text" class="text-slate-700 leading-relaxed"></p>
+                    </div>
+                </section>
+
+                <section id="tab-asistente" class="tab-content h-[calc(100vh-180px)]">
+                    <div class="bg-white h-full flex flex-col rounded-xl shadow-sm border border-slate-200">
+                        <div id="chat-window" class="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50">
+                            <div class="flex justify-start">
+                                <div class="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[80%] text-slate-700">
+                                    ¡Hola! Soy el asistente de tu hotel. Pregúntame lo que un huésped querría saber.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-white border-t flex space-x-2">
+                            <input type="text" id="chat-input" onkeypress="if(event.key==='Enter') sendMessage()" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="¿A qué hora es el desayuno?">
+                            <button onclick="sendMessage()" class="bg-slate-900 text-white p-3 px-5 rounded-xl hover:bg-blue-600 transition-all shadow-lg">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-configuracion" class="tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center"><i class="fas fa-key mr-2 text-blue-500"></i> API Key</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Gemini API Key</label>
+                                <input type="password" id="api-key-input" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="AI Studio Key...">
+                                <p class="text-xs text-slate-500 mt-2 italic">Solo se guarda en tu navegador.</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center"><i class="fas fa-hotel mr-2 text-blue-500"></i> Información del Hotel</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cerebro de Datos (Contexto)</label>
+                                <textarea id="hotel-context-input" rows="8" class="w-full p-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Ej: WiFi: Hotel_Guest / Pass: 1234. Desayuno: 7am a 10am. Check-out: 11am..."></textarea>
+                                <p class="text-xs text-slate-500 mt-2 text-justify">Pega aquí horarios, servicios, reglas y cualquier detalle que el asistente deba conocer para responder a los huéspedes.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <button onclick="saveSettings()" class="bg-green-600 text-white px-8 py-3 rounded-xl hover:bg-green-700 transition-all font-bold shadow-lg shadow-green-100">
+                            <i class="fas fa-save mr-2"></i> GUARDAR TODO
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Navegación
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active-tab');
+            
+            const titles = { 'resenas': 'Gestión de Reseñas', 'asistente': 'Asistente de Huéspedes', 'configuracion': 'Configuración' };
+            document.getElementById('tab-title').innerText = titles[tabId];
+        }
+
+        // Guardado de Configuración
+        function saveSettings() {
+            const key = document.getElementById('api-key-input').value;
+            const context = document.getElementById('hotel-context-input').value;
+            
+            localStorage.setItem('GEMINI_API_KEY', key);
+            localStorage.setItem('HOTEL_CONTEXT', context);
+            
+            alert('¡Configuración y Contexto guardados correctamente!');
+            checkStatus();
+        }
+
+        function checkStatus() {
+            const key = localStorage.getItem('GEMINI_API_KEY');
+            const context = localStorage.getItem('HOTEL_CONTEXT');
+            const indicator = document.getElementById('api-status');
+            
+            if(key) {
+                indicator.classList.replace('bg-red-500', 'bg-green-500');
+                indicator.style.boxShadow = "0 0 10px #22c55e";
+                document.getElementById('api-key-input').value = key;
+            }
+            if(context) {
+                document.getElementById('hotel-context-input').value = context;
+            }
+        }
+
+        // Llamada Genérica a Gemini
+        async function callGemini(prompt) {
+            const apiKey = localStorage.getItem('GEMINI_API_KEY');
+            if (!apiKey) {
+                alert("Falta la API Key en Configuración.");
+                showTab('configuracion');
+                return null;
+            }
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error(error);
+                return "Error al conectar con la IA.";
+            }
+        }
+
+        // Lógica de Reseñas
+        async function generateResponse() {
+            const review = document.getElementById('review-input').value;
+            if (!review) return;
+
+            const container = document.getElementById('response-container');
+            const textEl = document.getElementById('ai-response-text');
+            
+            container.classList.remove('hidden');
+            textEl.innerText = "Pensando respuesta...";
+
+            const prompt = `Actúa como el Gerente de un hotel. Responde de forma profesional, cálida y resolutiva a esta reseña: "${review}". Firma como 'La Gerencia'.`;
+            const result = await callGemini(prompt);
+            if(result) textEl.innerText = result;
+        }
+
+        // Copiar al Portapapeles mejorado
+        function copyToClipboard() {
+            const text = document.getElementById('ai-response-text').innerText;
+            const btn = document.getElementById('copy-btn');
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const originalContent = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-green-500 mr-1"></i> <span class="text-green-500">¡Copiado!</span>';
+                setTimeout(() => { btn.innerHTML = originalContent; }, 2000);
+            });
+        }
+
+        // Lógica de Asistente (Chat) con Contexto Real
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const chatWindow = document.getElementById('chat-window');
+            const userMsg = input.value;
+            const context = localStorage.getItem('HOTEL_CONTEXT') || "No hay información específica disponible.";
+
+            if (!userMsg) return;
+
+            chatWindow.innerHTML += `<div class="flex justify-end"><div class="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-none shadow-md max-w-[80%]">${userMsg}</div></div>`;
+            input.value = "";
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            const prompt = `Eres el asistente del hotel. Usa esta información real del hotel para responder al huésped: [${context}]. Si la información no está ahí, responde amablemente que consultarás con recepción. Sé muy servicial y breve. Pregunta del huésped: ${userMsg}`;
+
+            const aiRes = await callGemini(prompt);
+            
+            chatWindow.innerHTML += `<div class="flex justify-start"><div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[80%] text-slate-700">${aiRes}</div></div>`;
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        window.onload = checkStatus;
+// Registro del Service Worker para PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW no registrado', err));
+  });
+}
+
+    </script>
+</body>
+</html>
